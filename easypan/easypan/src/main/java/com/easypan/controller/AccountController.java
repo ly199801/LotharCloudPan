@@ -9,6 +9,9 @@ package com.easypan.controller;/*
 
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.CreateImageCode;
+import com.easypan.entity.vo.ResponseVO;
+import com.easypan.exception.BusinessException;
+import com.easypan.service.EmailCodeService;
 import com.easypan.service.UserInfoService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,6 +29,9 @@ public class AccountController extends ABaseController {
 
     @Resource
     private UserInfoService userInfoService;
+
+    @Resource
+    private EmailCodeService emailCodeService;
 
     /**
      * 验证码
@@ -50,6 +56,21 @@ public class AccountController extends ABaseController {
             session.setAttribute(Constants.CHECK_CODE_KEY_EMAIL, code);
         }
         vCode.write(response.getOutputStream());
+    }
+
+    @RequestMapping(value = "sendEmailCode")
+    public ResponseVO sendEmailCode(HttpSession session,String email,String checkCode,Integer type) {
+        try {
+            //如果验证码不匹配则抛出异常
+            if(!checkCode.equalsIgnoreCase((String)session.getAttribute(Constants.CHECK_CODE_KEY_EMAIL))){
+                throw new BusinessException("验证码不匹配");
+            }
+            emailCodeService.sendEmailCode(email,type);
+            return getSuccessResponseVO(null);
+        }finally {
+            //验证码使用后立即删除
+            session.removeAttribute(Constants.CHECK_CODE_KEY_EMAIL);
+        }
     }
 
 

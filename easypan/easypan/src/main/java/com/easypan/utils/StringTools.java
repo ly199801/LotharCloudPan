@@ -50,7 +50,13 @@ public class StringTools {
         return RandomStringUtils.random(count, true, true);
     }
 
+    /**
+     * 生成随机数
+     * @param count
+     * @return
+     */
     public static final String getRandomNumber(Integer count) {
+
         return RandomStringUtils.random(count, false, true);
     }
 
