@@ -11,6 +11,12 @@ public class StringTools {
         return StringTools.isEmpty(originString) ? null : DigestUtils.md5Hex(originString);
     }
 
+    /**
+     * 判断字符串是否为空
+     * @param str
+     * @return
+     */
+
     public static boolean isEmpty(String str) {
 
         if (null == str || "".equals(str) || "null".equals(str) || "\u0000".equals(str)) {

@@ -22,9 +22,6 @@ public class VerifyUtils {
         return verify(regex.getRegex(), value);
     }
 
-    public static void main(String[] args) {
-        System.out.println(new File("E:\\代码生成\\..\\workspace-java").exists());
 
-    }
 }
 

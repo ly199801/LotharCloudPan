@@ -7,8 +7,11 @@ package com.easypan.controller;/*
  * @Version 1.0
  */
 
+import com.easypan.annotation.GlobalInterceptor;
+import com.easypan.annotation.VerifyParam;
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.CreateImageCode;
+import com.easypan.entity.enums.VerifyRegexEnum;
 import com.easypan.entity.vo.ResponseVO;
 import com.easypan.exception.BusinessException;
 import com.easypan.service.EmailCodeService;
@@ -58,12 +61,26 @@ public class AccountController extends ABaseController {
         vCode.write(response.getOutputStream());
     }
 
-    @RequestMapping(value = "sendEmailCode")
-    public ResponseVO sendEmailCode(HttpSession session,String email,String checkCode,Integer type) {
+    /**
+     * 发送邮箱验证码
+     * @param session
+     * @param email
+     * @param checkCode
+     * @param type
+     * @return
+     */
+
+    @RequestMapping(value = "/sendEmailCode")
+    @GlobalInterceptor(checkParams = true) //aop切面，用来进行参数的校验
+    public ResponseVO sendEmailCode(HttpSession session,
+                                    @VerifyParam(required = true,regex = VerifyRegexEnum.EMAIL,max=150) String email,
+
+                                    @VerifyParam(required = true) String checkCode,
+                                    @VerifyParam(required = true) Integer type) {
         try {
             //如果验证码不匹配则抛出异常
             if(!checkCode.equalsIgnoreCase((String)session.getAttribute(Constants.CHECK_CODE_KEY_EMAIL))){
-                throw new BusinessException("验证码不匹配");
+                throw new BusinessException("图片验证码不匹配");
             }
             emailCodeService.sendEmailCode(email,type);
             return getSuccessResponseVO(null);
@@ -73,5 +90,26 @@ public class AccountController extends ABaseController {
         }
     }
 
+
+    @RequestMapping(value = "/register")
+    @GlobalInterceptor(checkParams = true) //aop切面，用来进行参数的校验
+    public ResponseVO register(HttpSession session,
+                               @VerifyParam(required = true,regex = VerifyRegexEnum.EMAIL,max=150) String email,
+                               @VerifyParam(required = true)String nickName,
+                               @VerifyParam(required = true,regex = VerifyRegexEnum.PASSWORD,min=8,max=18)String password,
+                               @VerifyParam(required = true) String checkCode,
+                               @VerifyParam(required = true) Integer type) {
+        try {
+            //如果验证码不匹配则抛出异常
+            if(!checkCode.equalsIgnoreCase((String)session.getAttribute(Constants.CHECK_CODE_KEY_EMAIL))){
+                throw new BusinessException("图片验证码不匹配");
+            }
+            emailCodeService.sendEmailCode(email,type);
+            return getSuccessResponseVO(null);
+        }finally {
+            //验证码使用后立即删除
+            session.removeAttribute(Constants.CHECK_CODE_KEY_EMAIL);
+        }
+    }
 
 }
