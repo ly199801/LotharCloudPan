@@ -23,7 +23,9 @@ public class AppConfig {
     @Value("${spring.mail.username:}")
     private String sendUserName;
 
-
+    /**
+     * 管理员账号
+     */
     @Value("${admin.emails:}")
     private String adminEmails;
 

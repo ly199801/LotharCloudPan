@@ -137,6 +137,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
         return this.emailCodeMapper.deleteByEmailAndCode(email, code);
     }
 
+
     private void sendEmailCode(String toEmail, String code) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();

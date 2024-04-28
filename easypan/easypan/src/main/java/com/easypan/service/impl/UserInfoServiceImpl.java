@@ -232,6 +232,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         SessionWebUserDto sessionWebUserDto = new SessionWebUserDto();
         sessionWebUserDto.setNickName(userInfo.getNickName());
         sessionWebUserDto.setUserId(userInfo.getUserId());
+        //如果是管理员账号，则进入管理模式
         if (ArrayUtils.contains(appConfig.getAdminEmails().split(","), email)) {
             sessionWebUserDto.setAdmin(true);
         } else {
@@ -239,7 +240,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         }
         //用户空间
         UserSpaceDto userSpaceDto = new UserSpaceDto();
-        userSpaceDto.setUseSpace(fileInfoService.getUserUseSpace(userInfo.getUserId()));
+//        userSpaceDto.setUseSpace(fileInfoService.getUserUseSpace(userInfo.getUserId()));
         userSpaceDto.setTotalSpace(userInfo.getTotalSpace());
         redisComponent.saveUserSpaceUse(userInfo.getUserId(), userSpaceDto);
         return sessionWebUserDto;
