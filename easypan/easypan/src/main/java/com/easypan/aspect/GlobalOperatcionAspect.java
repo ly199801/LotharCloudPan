@@ -9,6 +9,8 @@ package com.easypan.aspect;/*
 
 import com.easypan.annotation.GlobalInterceptor;
 import com.easypan.annotation.VerifyParam;
+import com.easypan.entity.constants.Constants;
+import com.easypan.entity.dto.SessionWebUserDto;
 import com.easypan.entity.enums.ResponseCodeEnum;
 import com.easypan.exception.BusinessException;
 import com.easypan.utils.StringTools;
@@ -21,7 +23,11 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -56,6 +62,12 @@ public class GlobalOperatcionAspect {
             if (interceptor == null) {
                 return;
             }
+            /**
+             * 校验登录
+             */
+            if (interceptor.checkLogin() || interceptor.checkAdmin()){
+                checkLogin(interceptor.checkAdmin());
+            }
 
             /**
              * 校验参数
@@ -68,6 +80,20 @@ public class GlobalOperatcionAspect {
             throw new BusinessException(ResponseCodeEnum.CODE_500);
         }
     }
+
+    private void checkLogin(Boolean checkAdmin){
+        HttpServletRequest request= ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest();
+        HttpSession session = request.getSession();
+        SessionWebUserDto userDto = (SessionWebUserDto) session.getAttribute(Constants.SESSION_KEY);
+
+        if(userDto==null){
+            throw new BusinessException(ResponseCodeEnum.CODE_901);
+        }
+        if(checkAdmin && !userDto.getAdmin()){
+            throw new BusinessException(ResponseCodeEnum.CODE_404);
+        }
+    }
+
     private void validateParams(Method method, Object[] args) throws BusinessException {
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {

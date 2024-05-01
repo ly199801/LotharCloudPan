@@ -95,7 +95,7 @@ public class AccountController extends ABaseController {
      */
 
     @RequestMapping(value = "/sendEmailCode")
-    @GlobalInterceptor(checkParams = true) //aop切面，用来进行参数的校验
+    @GlobalInterceptor(checkParams = true,checkLogin = false) //aop切面，用来进行参数的校验
     public ResponseVO sendEmailCode(HttpSession session,
                                     @VerifyParam(required = true,regex = VerifyRegexEnum.EMAIL,max=150) String email,
                                     @VerifyParam(required = true) String checkCode,
@@ -124,7 +124,7 @@ public class AccountController extends ABaseController {
      * @return
      */
     @RequestMapping(value = "/register")
-    @GlobalInterceptor(checkParams = true) //aop切面，用来进行参数的校验
+    @GlobalInterceptor(checkParams = true,checkLogin = false) //aop切面，用来进行参数的校验
     public ResponseVO register(HttpSession session,
                                @VerifyParam(required = true,regex = VerifyRegexEnum.EMAIL,max=150) String email,
                                @VerifyParam(required = true)String nickName,
@@ -153,13 +153,12 @@ public class AccountController extends ABaseController {
      * @return
      */
     @RequestMapping(value = "/login")
-    @GlobalInterceptor(checkParams = true) //aop切面，用来进行参数的校验
+    @GlobalInterceptor(checkParams = true,checkLogin = false) //aop切面，用来进行参数的校验
     public ResponseVO login(HttpSession session,
                                @VerifyParam(required = true) String email,
                                @VerifyParam(required = true)String password,
                                @VerifyParam(required = true) String checkCode) {
         try {
-//            如果验证码不匹配则抛出异常
             if(!checkCode.equalsIgnoreCase((String)session.getAttribute(Constants.CHECK_CODE_KEY))){
                 throw new BusinessException("图片验证码不匹配");
             }
@@ -183,7 +182,7 @@ public class AccountController extends ABaseController {
      * @return
      */
     @RequestMapping(value = "/resetPwd")
-    @GlobalInterceptor(checkParams = true) //aop切面，用来进行参数的校验
+    @GlobalInterceptor(checkParams = true,checkLogin = false) //aop切面，用来进行参数的校验
     public ResponseVO resetPwd(HttpSession session,
                                @VerifyParam(required = true,regex = VerifyRegexEnum.EMAIL,max=150) String email,
                                @VerifyParam(required = true,regex = VerifyRegexEnum.PASSWORD,min=8,max=18)String password,
@@ -208,7 +207,7 @@ public class AccountController extends ABaseController {
      * @param userId
      */
     @RequestMapping(value = "/getAvatar/{userId}")
-    @GlobalInterceptor(checkParams = true)
+    @GlobalInterceptor(checkParams = true,checkLogin = false)
     public void getAvatar(HttpServletResponse response, @VerifyParam(required = true)  @PathVariable("userId") String userId) {
 
         String avatarFolderName = Constants.FILE_FOLDER_FILE + Constants.FILE_FOLDER_AVATAR_NAME;
@@ -269,7 +268,7 @@ public class AccountController extends ABaseController {
      * @return
      */
     @RequestMapping(value = "/getUserSpace")
-    @GlobalInterceptor(checkParams = true)
+    @GlobalInterceptor
     public ResponseVO getUserSpace(HttpSession session) {
         SessionWebUserDto sessionWebUserDto =getUserInfoFromSession(session);
 
@@ -284,7 +283,6 @@ public class AccountController extends ABaseController {
      * @return
      */
     @RequestMapping(value = "/logout")
-    @GlobalInterceptor(checkParams = true)
     public ResponseVO logout(HttpSession session) {
         session.invalidate();
         return getSuccessResponseVO(null);
