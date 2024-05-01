@@ -37,6 +37,11 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * 用户信息 Controller
@@ -329,7 +334,7 @@ public class AccountController extends ABaseController {
     @RequestMapping(value = "/updatePwd")
     @GlobalInterceptor(checkParams = true)
     public ResponseVO updatePwd(HttpSession session,
-                               @VerifyParam(required = true,regex = VerifyRegexEnum.PASSWORD,min=8,max=18)String password) {
+                               @VerifyParam(required = true, regex = VerifyRegexEnum.PASSWORD,min=8,max=18)String password) {
         SessionWebUserDto sessionWebUserDto = getUserInfoFromSession(session);
         UserInfo userInfo = new UserInfo();
         userInfo.setPassword(StringTools.encodeByMD5(password));
@@ -337,6 +342,50 @@ public class AccountController extends ABaseController {
         return getSuccessResponseVO(null);
     }
 
+    /**
+     * qq登录
+     * @param session
+     * @param callbackUrl
+     * @return
+     */
+    @RequestMapping(value = "/qqlogin")
+    @GlobalInterceptor(checkParams = true,checkLogin = false)
+    //callbackUrl是用于qq登录完以后需要跳回去一个地址
+    public ResponseVO qqlogin(HttpSession session, String callbackUrl) throws UnsupportedEncodingException {
+        String state=StringTools.getRandomString(Constants.LENGTH_30);
+        if(!StringTools.isEmpty(callbackUrl)){
+            session.setAttribute(state,callbackUrl);//从state里面拿url
+        }
+        //RLEncoder.encode(appConfig.getQqUrlRedirect():回传的地址
+        String url = String.format(appConfig.getQqUrlAuthorization(),appConfig.getQqAppId(), URLEncoder.encode(appConfig.getQqUrlRedirect(),"UTF-8"),state);
+
+
+        return getSuccessResponseVO(url);
+    }
+
+    /**
+     * qq登录后回传结果
+     * @param session
+     * @param code
+     * @param state
+     * @return
+     */
+    @RequestMapping(value = "/qqlogin/callback")
+    @GlobalInterceptor(checkParams = true,checkLogin = false)
+    //callbackUrl是用于qq登录完以后需要跳回去一个地址
+    public ResponseVO qqloginCallback(HttpSession session,
+                                      @VerifyParam(required = true) String code,
+                                      @VerifyParam(required = true) String state)  {
+
+        SessionWebUserDto sessionWebUserDto=userInfoService.qqLogin(code);//这个code是qq那边给我们的，拿这个code去拿openid，通过这个openid可以拿到一些qq的信息
+        session.setAttribute(Constants.SESSION_KEY,sessionWebUserDto);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("callbackUrl",session.getAttribute(state));
+        result.put("userInfo",sessionWebUserDto);
+
+        return getSuccessResponseVO(result);
+    }
 
 
 }

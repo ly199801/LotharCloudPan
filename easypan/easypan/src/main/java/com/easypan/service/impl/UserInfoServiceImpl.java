@@ -303,20 +303,24 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public SessionWebUserDto qqLogin(String code) {
+        //第一步 通过回调code获取accessToken
         String accessToken = getQQAccessToken(code);
+        //第二部 由accessToken获取openId
         String openId = getQQOpenId(accessToken);
         UserInfo user = this.userInfoMapper.selectByQqOpenId(openId);
         String avatar = null;
+        //如果用户没注册，则先给他注册
         if (null == user) {
+            //第三步 获取用户基本信息
             QQInfoDto qqInfo = getQQUserInfo(accessToken, openId);
             user = new UserInfo();
 
             String nickName = qqInfo.getNickname();
-            nickName = nickName.length() > Constants.LENGTH_150 ? nickName.substring(0, 150) : nickName;
+            nickName = nickName.length() > Constants.LENGTH_20 ? nickName.substring(0, 20) : nickName;
             avatar = StringTools.isEmpty(qqInfo.getFigureurl_qq_2()) ? qqInfo.getFigureurl_qq_1() : qqInfo.getFigureurl_qq_2();
             Date curDate = new Date();
 
-            //上传头像到本地
+            //以下都是注册的操作
             user.setQqOpenId(openId);
             user.setJoinTime(curDate);
             user.setNickName(nickName);
@@ -341,6 +345,8 @@ public class UserInfoServiceImpl implements UserInfoService {
         sessionWebUserDto.setUserId(user.getUserId());
         sessionWebUserDto.setNickName(user.getNickName());
         sessionWebUserDto.setAvatar(avatar);
+
+        //是否是超级管理员
         if (ArrayUtils.contains(appConfig.getAdminEmails().split(","), user.getEmail() == null ? "" : user.getEmail())) {
             sessionWebUserDto.setAdmin(true);
         } else {
@@ -348,6 +354,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         }
 
         UserSpaceDto userSpaceDto = new UserSpaceDto();
+        //获取用户已使用的空间
         userSpaceDto.setUseSpace(fileInfoService.getUserUseSpace(user.getUserId()));
         userSpaceDto.setTotalSpace(user.getTotalSpace());
         redisComponent.saveUserSpaceUse(user.getUserId(), userSpaceDto);
@@ -383,6 +390,12 @@ public class UserInfoServiceImpl implements UserInfoService {
         return accessToken;
     }
 
+    /**
+     * 获取qqopenId
+     * @param accessToken
+     * @return
+     * @throws BusinessException
+     */
 
     private String getQQOpenId(String accessToken) throws BusinessException {
         // 获取openId
@@ -401,7 +414,13 @@ public class UserInfoServiceImpl implements UserInfoService {
         return String.valueOf(jsonData.get("openid"));
     }
 
-
+    /**
+     * 获取用户基本信息
+     * @param accessToken
+     * @param qqOpenId
+     * @return
+     * @throws BusinessException
+     */
     private QQInfoDto getQQUserInfo(String accessToken, String qqOpenId) throws BusinessException {
         String url = String.format(appConfig.getQqUrlUserInfo(), accessToken, appConfig.getQqAppId(), qqOpenId);
         String response = OKHttpUtils.getRequest(url);

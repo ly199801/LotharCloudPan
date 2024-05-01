@@ -89,3 +89,23 @@ public @interface GlobalInterceptor {
 
 ```
 
+
+
+## Redis出现异常前缀的原因
+
+**异常现象**
+
+![image-20240501152503904](F:/Java%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/img/image-20240501152503904.png)
+
+
+
+需要定义key的序列化方式，还有value的序列化方式
+
+![image-20240501152414499](F:/Java%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/img/image-20240501152414499.png)
+
+
+
+处理后：
+
+![image-20240501152532037](F:/Java%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/img/image-20240501152532037.png)
+
