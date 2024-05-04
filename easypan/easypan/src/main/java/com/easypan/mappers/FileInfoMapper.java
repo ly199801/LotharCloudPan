@@ -27,7 +27,7 @@ public interface FileInfoMapper<T, P> extends BaseMapper<T, P> {
      */
     T selectByFileIdAndUserId(@Param("fileId") String fileId, @Param("userId") String userId);
 
-
+    //一个简单的乐观锁
     void updateFileStatusWithOldStatus(@Param("fileId") String fileId, @Param("userId") String userId, @Param("bean") T t,
                                        @Param("oldStatus") Integer oldStatus);
 

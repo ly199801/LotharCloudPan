@@ -272,7 +272,7 @@ public class AccountController extends ABaseController {
      * @param session
      * @return
      */
-    @RequestMapping(value = "/getUserSpace")
+    @RequestMapping(value = "/getUseSpace")
     @GlobalInterceptor
     public ResponseVO getUserSpace(HttpSession session) {
         SessionWebUserDto sessionWebUserDto =getUserInfoFromSession(session);
@@ -331,9 +331,9 @@ public class AccountController extends ABaseController {
      * @param password
      * @return
      */
-    @RequestMapping(value = "/updatePwd")
+    @RequestMapping(value = "/updatePassword")
     @GlobalInterceptor(checkParams = true)
-    public ResponseVO updatePwd(HttpSession session,
+    public ResponseVO updatePassword(HttpSession session,
                                @VerifyParam(required = true, regex = VerifyRegexEnum.PASSWORD,min=8,max=18)String password) {
         SessionWebUserDto sessionWebUserDto = getUserInfoFromSession(session);
         UserInfo userInfo = new UserInfo();

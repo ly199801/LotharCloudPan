@@ -109,3 +109,26 @@ public @interface GlobalInterceptor {
 
 ![image-20240501152532037](F:/Java%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/img/image-20240501152532037.png)
 
+
+
+
+
+# 文件上传
+
+将大文件切成一小片一小片，需要知道文件总共需要切多少片，例如100M文件按10M来切，则需要传10次，到最后一个分片传完结束时，需要合并
+
+
+
+## 大图片和视频的缩略图显示失败
+
+![image-20240503140038385](F:/Java%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/img/image-20240503140038385.png)
+
+
+
+pom文件中没有导入ffmpeg的包，导入后仍然失败，测试ffmpeg功能正常。多次测试后发现，文件夹名字中不能带有空格，否则ffmpeg不会进行图片压缩的复制，`FFmpeg`在处理视频、音频时，对路径或[文件名](https://so.csdn.net/so/search?q=文件名&spm=1001.2101.3001.7020)中有空格时，默认会按空格进行切割，导致参数错误。
+
+[Cmd调用 FFmpeg操作时文件路径或文件名中有空格的处理_ffmpeg 文件名含有空格-CSDN博客](https://blog.csdn.net/MMDFCZ/article/details/132552938)
+
+
+
+视频分片播放，如果不分片，直接解析MP4文件，非常占内存和带宽

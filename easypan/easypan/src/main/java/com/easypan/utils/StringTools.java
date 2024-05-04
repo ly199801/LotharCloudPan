@@ -27,6 +27,11 @@ public class StringTools {
         return false;
     }
 
+    /**
+     * 获取文件名后缀
+     * @param fileName
+     * @return
+     */
     public static String getFileSuffix(String fileName) {
         Integer index = fileName.lastIndexOf(".");
         if (index == -1) {
@@ -36,7 +41,11 @@ public class StringTools {
         return suffix;
     }
 
-
+    /**
+     * 获取文件名除了后缀
+     * @param fileName
+     * @return
+     */
     public static String getFileNameNoSuffix(String fileName) {
         Integer index = fileName.lastIndexOf(".");
         if (index == -1) {
@@ -46,6 +55,11 @@ public class StringTools {
         return fileName;
     }
 
+    /**
+     * 文件重命名
+     * @param fileName
+     * @return
+     */
     public static String rename(String fileName) {
         String fileNameReal = getFileNameNoSuffix(fileName);
         String suffix = getFileSuffix(fileName);

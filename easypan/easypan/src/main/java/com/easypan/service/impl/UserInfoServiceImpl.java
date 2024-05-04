@@ -9,11 +9,14 @@ import com.easypan.entity.dto.SysSettingsDto;
 import com.easypan.entity.dto.UserSpaceDto;
 import com.easypan.entity.enums.PageSize;
 import com.easypan.entity.enums.UserStatusEnum;
+import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.po.UserInfo;
+import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.entity.query.SimplePage;
 import com.easypan.entity.query.UserInfoQuery;
 import com.easypan.entity.vo.PaginationResultVO;
 import com.easypan.exception.BusinessException;
+import com.easypan.mappers.FileInfoMapper;
 import com.easypan.mappers.UserInfoMapper;
 import com.easypan.service.EmailCodeService;
 import com.easypan.service.FileInfoService;
@@ -44,6 +47,9 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Resource
     private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
+
+    @Resource
+    private FileInfoMapper<FileInfo, FileInfoQuery> fileInfoMapper;
 
     @Resource
     private EmailCodeService emailCodeService;
@@ -241,6 +247,8 @@ public class UserInfoServiceImpl implements UserInfoService {
         //用户空间
         UserSpaceDto userSpaceDto = new UserSpaceDto();
 //        userSpaceDto.setUseSpace(fileInfoService.getUserUseSpace(userInfo.getUserId()));
+        Long useSpace =fileInfoMapper.selectUseSpace(userInfo.getUserId());
+        userSpaceDto.setUseSpace(useSpace);
         userSpaceDto.setTotalSpace(userInfo.getTotalSpace());
         redisComponent.saveUserSpaceUse(userInfo.getUserId(), userSpaceDto);
         return sessionWebUserDto;
@@ -355,7 +363,9 @@ public class UserInfoServiceImpl implements UserInfoService {
 
         UserSpaceDto userSpaceDto = new UserSpaceDto();
         //获取用户已使用的空间
-        userSpaceDto.setUseSpace(fileInfoService.getUserUseSpace(user.getUserId()));
+        Long useSpace =fileInfoMapper.selectUseSpace(user.getUserId());
+        userSpaceDto.setUseSpace(useSpace);
+//        userSpaceDto.setUseSpace(fileInfoService.getUserUseSpace(user.getUserId()));
         userSpaceDto.setTotalSpace(user.getTotalSpace());
         redisComponent.saveUserSpaceUse(user.getUserId(), userSpaceDto);
         return sessionWebUserDto;

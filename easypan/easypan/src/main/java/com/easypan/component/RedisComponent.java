@@ -101,7 +101,7 @@ public class RedisComponent {
         Long currentSize = getFileTempSize(userId, fileId);
         redisUtils.setex(Constants.REDIS_KEY_USER_FILE_TEMP_SIZE + userId + fileId, currentSize + fileSize, Constants.REDIS_KEY_EXPIRES_ONE_HOUR);
     }
-
+    //获取文件临时大小
     public Long getFileTempSize(String userId, String fileId) {
         Long currentSize = getFileSizeFromRedis(Constants.REDIS_KEY_USER_FILE_TEMP_SIZE + userId + fileId);
         return currentSize;

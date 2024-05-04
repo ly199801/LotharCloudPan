@@ -36,6 +36,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -166,10 +167,12 @@ public class FileInfoServiceImpl implements FileInfoService {
             }
             resultDto.setFileId(fileId);
             Date curDate = new Date();
+            //获取用户的已使用空间，这样可以在不够的时候提前告诉他空间不足，而不是等到上传到中途才告诉他空间不足
             UserSpaceDto spaceDto = redisComponent.getUserSpaceUse(webUserDto.getUserId());
+            //chunkIndex==0，表示是文件的第一个分片
             if (chunkIndex == 0) {
                 FileInfoQuery infoQuery = new FileInfoQuery();
-                infoQuery.setFileMd5(fileMd5);
+                infoQuery.setFileMd5(fileMd5);//获取文件的MD5值，这样如果已经有这个文件了，则可以达到秒传
                 infoQuery.setSimplePage(new SimplePage(0, 1));
                 infoQuery.setStatus(FileStatusEnums.USING.getStatus());
                 List<FileInfo> dbFileList = this.fileInfoMapper.selectList(infoQuery);
@@ -180,15 +183,17 @@ public class FileInfoServiceImpl implements FileInfoService {
                     if (dbFile.getFileSize() + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
                         throw new BusinessException(ResponseCodeEnum.CODE_904);
                     }
+                    //相当于在数据库里找到那个文件给这个用户copy一份
                     dbFile.setFileId(fileId);
                     dbFile.setFilePid(filePid);
                     dbFile.setUserId(webUserDto.getUserId());
-                    dbFile.setFileMd5(null);
+//                    dbFile.setFileMd5(null);
                     dbFile.setCreateTime(curDate);
                     dbFile.setLastUpdateTime(curDate);
                     dbFile.setStatus(FileStatusEnums.USING.getStatus());
                     dbFile.setDelFlag(FileDelFlagEnums.USING.getFlag());
                     dbFile.setFileMd5(fileMd5);
+                    //文件重命名
                     fileName = autoRename(filePid, webUserDto.getUserId(), fileName);
                     dbFile.setFileName(fileName);
                     this.fileInfoMapper.insert(dbFile);
@@ -199,6 +204,13 @@ public class FileInfoServiceImpl implements FileInfoService {
                     return resultDto;
                 }
             }
+
+            //判断磁盘空间
+            Long currentTempSize = redisComponent.getFileTempSize(webUserDto.getUserId(), fileId);
+            if (file.getSize() + currentTempSize + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
+                throw new BusinessException(ResponseCodeEnum.CODE_904);
+            }
+
             //暂存在临时目录
             String tempFolderName = appConfig.getProjectFolder() + Constants.FILE_FOLDER_TEMP;
             String currentUserFolderName = webUserDto.getUserId() + fileId;
@@ -208,11 +220,6 @@ public class FileInfoServiceImpl implements FileInfoService {
                 tempFileFolder.mkdirs();
             }
 
-            //判断磁盘空间
-            Long currentTempSize = redisComponent.getFileTempSize(webUserDto.getUserId(), fileId);
-            if (file.getSize() + currentTempSize + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
-                throw new BusinessException(ResponseCodeEnum.CODE_904);
-            }
 
             File newFile = new File(tempFileFolder.getPath() + "/" + chunkIndex);
             file.transferTo(newFile);
@@ -231,6 +238,7 @@ public class FileInfoServiceImpl implements FileInfoService {
             FileTypeEnums fileTypeEnum = FileTypeEnums.getFileTypeBySuffix(fileSuffix);
             //自动重命名
             fileName = autoRename(filePid, webUserDto.getUserId(), fileName);
+
             FileInfo fileInfo = new FileInfo();
             fileInfo.setFileId(fileId);
             fileInfo.setUserId(webUserDto.getUserId());
@@ -279,16 +287,28 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
     }
 
-    private void updateUserSpace(SessionWebUserDto webUserDto, Long totalSize) {
-        Integer count = userInfoMapper.updateUserSpace(webUserDto.getUserId(), totalSize, null);
+    /**
+     * 更新用户空间
+     * @param webUserDto
+     * @param useSpace
+     */
+    private void updateUserSpace(SessionWebUserDto webUserDto, Long useSpace) {
+        Integer count = userInfoMapper.updateUserSpace(webUserDto.getUserId(), useSpace, null);
         if (count == 0) {
             throw new BusinessException(ResponseCodeEnum.CODE_904);
         }
         UserSpaceDto spaceDto = redisComponent.getUserSpaceUse(webUserDto.getUserId());
-        spaceDto.setUseSpace(spaceDto.getUseSpace() + totalSize);
+        spaceDto.setUseSpace(spaceDto.getUseSpace() + useSpace);
         redisComponent.saveUserSpaceUse(webUserDto.getUserId(), spaceDto);
     }
 
+    /**
+     * 文件重命名
+     * @param filePid
+     * @param userId
+     * @param fileName
+     * @return
+     */
     private String autoRename(String filePid, String userId, String fileName) {
         FileInfoQuery fileInfoQuery = new FileInfoQuery();
         fileInfoQuery.setUserId(userId);
@@ -303,10 +323,16 @@ public class FileInfoServiceImpl implements FileInfoService {
         return fileName;
     }
 
+    /**
+     * 文件转码
+     * @param fileId
+     * @param webUserDto
+     */
     @Async
     public void transferFile(String fileId, SessionWebUserDto webUserDto) {
         Boolean transferSuccess = true;
         String targetFilePath = null;
+        String coverPath=null;
         String cover = null;
         FileTypeEnums fileTypeEnum = null;
         FileInfo fileInfo = fileInfoMapper.selectByFileIdAndUserId(fileId, webUserDto.getUserId());
@@ -342,13 +368,18 @@ public class FileInfoServiceImpl implements FileInfoService {
                 cutFile4Video(fileId, targetFilePath);
                 //视频生成缩略图
                 cover = month + "/" + currentUserFolderName + Constants.IMAGE_PNG_SUFFIX;
-                String coverPath = targetFolderName + "/" + cover;
+                coverPath = targetFolderName + "/" + cover;
+
                 ScaleFilter.createCover4Video(new File(targetFilePath), Constants.LENGTH_150, new File(coverPath));
             } else if (FileTypeEnums.IMAGE == fileTypeEnum) {
                 //生成缩略图
-                cover = month + "/" + realFileName.replace(".", "_.");
-                String coverPath = targetFolderName + "/" + cover;
+                cover =  month+ "/" + realFileName.replace(".", "_.");
+
+                coverPath = targetFolderName + "/" + cover;
+
+//                Boolean created = ScaleFilter.createThumbnailWidthFFmpeg(new File(targetFilePath), Constants.LENGTH_150, new File(coverPath), false);
                 Boolean created = ScaleFilter.createThumbnailWidthFFmpeg(new File(targetFilePath), Constants.LENGTH_150, new File(coverPath), false);
+
                 if (!created) {
                     FileUtils.copyFile(new File(targetFilePath), new File(coverPath));
                 }
@@ -361,10 +392,19 @@ public class FileInfoServiceImpl implements FileInfoService {
             updateInfo.setFileSize(new File(targetFilePath).length());
             updateInfo.setFileCover(cover);
             updateInfo.setStatus(transferSuccess ? FileStatusEnums.USING.getStatus() : FileStatusEnums.TRANSFER_FAIL.getStatus());
+            //一个简单的乐观锁，一个状态变成另外一个状态
             fileInfoMapper.updateFileStatusWithOldStatus(fileId, webUserDto.getUserId(), updateInfo, FileStatusEnums.TRANSFER.getStatus());
         }
     }
 
+    /**
+     * 合并文件方法
+     * @param dirPath
+     * @param toFilePath
+     * @param fileName
+     * @param delSource
+     * @throws BusinessException
+     */
     public static void union(String dirPath, String toFilePath, String fileName, boolean delSource) throws BusinessException {
         File dir = new File(dirPath);
         if (!dir.exists()) {
@@ -374,6 +414,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         File targetFile = new File(toFilePath);
         RandomAccessFile writeFile = null;
         try {
+            //RandomAccessFile是Java 输入/输出流体系中功能最丰富的文件内容访问类，它提供了众多的方法来访问文件内容，它既可以读取文件内容，也可以向文件输出数据
             writeFile = new RandomAccessFile(targetFile, "rw");
             byte[] b = new byte[1024 * 10];
             for (int i = 0; i < fileList.length; i++) {
@@ -416,18 +457,46 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
     }
 
+    /**
+     * 视频切割方法
+     * @param fileId
+     * @param videoFilePath
+     */
     private void cutFile4Video(String fileId, String videoFilePath) {
         //创建同名切片目录
         File tsFolder = new File(videoFilePath.substring(0, videoFilePath.lastIndexOf(".")));
         if (!tsFolder.exists()) {
             tsFolder.mkdirs();
         }
+        //调用ffmpeg命令
+        /*
+
+        1. `ffmpeg`: 这是一个流行的开源多媒体处理工具，用于处理音频、视频和其他多媒体数据。
+
+        2. `-y`: 这是一个选项，表示覆盖目标文件（如果存在）。通常用于在没有用户确认的情况下强制执行操作。
+
+        3. `-i %s`: 这个 `-i` 选项表示输入文件。`%s` 是一个占位符，表示后续会被替换为实际的输入文件路径。
+
+        4. `-vcodec copy`: 这个选项表示视频编解码器的选择。`copy` 表示视频流将被直接复制，而不进行重新编码。
+        这意味着输出的视频流与输入的视频流完全相同，不会有质量损失，同时也会减少处理时间。
+
+        5. `-acodec copy`: 这个选项表示音频编解码器的选择。同样地，`copy` 表示音频流也将被直接复制，而不进行重新编码。与视频流类似，
+        这可以保持音频流的质量并减少处理时间。
+
+        6. `-vbsf h264_mp4toannexb`: 这个选项表示视频比特流过滤器。`h264_mp4toannexb` 是一个过滤器，
+        用于将 H.264 编码的视频流重新封装为 MPEG-TS 格式。这在某些情况下是必需的，因为某些容器（例如 MPEG-4）中的
+        H.264 视频流可能需要转换为 MPEG-TS 格式，以便在特定设备或场景下播放。
+
+        因此，这段代码中定义的命令是将给定输入文件转换为 MPEG-TS 格式的命令，同时保留视频和音频流的原始编码方式，而不进行重新编码。
+         */
         final String CMD_TRANSFER_2TS = "ffmpeg -y -i %s  -vcodec copy -acodec copy -vbsf h264_mp4toannexb %s";
+        //这段代码定义的命令是将给定输入文件进行分段处理，每个分段的时长为30秒，输出为 MPEG-TS 格式的文件，并将分段列表写入到指定的文件中
         final String CMD_CUT_TS = "ffmpeg -i %s -c copy -map 0 -f segment -segment_list %s -segment_time 30 %s/%s_%%4d.ts";
 
         String tsPath = tsFolder + "/" + Constants.TS_NAME;
         //生成.ts
         String cmd = String.format(CMD_TRANSFER_2TS, videoFilePath, tsPath);
+        //java执行cmd命令
         ProcessUtils.executeCommand(cmd, false);
         //生成索引文件.m3u8 和切片.ts
         cmd = String.format(CMD_CUT_TS, tsPath, tsFolder.getPath() + "/" + Constants.M3U8_NAME, tsFolder.getPath(), fileId);

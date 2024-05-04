@@ -18,7 +18,7 @@ public class ScaleFilter {
             BufferedImage src = ImageIO.read(file);
             //thumbnailWidth 缩略图的宽度   thumbnailHeight 缩略图的高度
             int sorceW = src.getWidth();
-            int sorceH = src.getHeight();
+//            int sorceH = src.getHeight();
             //小于 指定高宽不压缩
             if (sorceW <= thumbnailWidth) {
                 return false;
@@ -34,7 +34,7 @@ public class ScaleFilter {
     public static void compressImageWidthPercentage(File sourceFile, BigDecimal widthPercentage, File targetFile) {
         try {
             BigDecimal widthResult = widthPercentage.multiply(new BigDecimal(ImageIO.read(sourceFile).getWidth()));
-            compressImage(sourceFile, widthResult.intValue(), targetFile, true);
+            compressImage(sourceFile, widthResult.intValue(), targetFile, false);
         } catch (Exception e) {
             logger.error("压缩图片失败");
         }
@@ -49,7 +49,7 @@ public class ScaleFilter {
         }
     }
 
-    public static void compressImage(File sourceFile, Integer width, File targetFile, Boolean delSource) {
+    public static void compressImage(File sourceFile, int width, File targetFile, Boolean delSource) {
         try {
             String cmd = "ffmpeg -i %s -vf scale=%d:-1 %s -y";
             ProcessUtils.executeCommand(String.format(cmd, sourceFile.getAbsoluteFile(), width, targetFile.getAbsoluteFile()), false);
@@ -58,13 +58,13 @@ public class ScaleFilter {
             }
         } catch (Exception e) {
             logger.error("压缩图片失败");
+
         }
     }
 
     public static void main(String[] args) {
-        compressImageWidthPercentage(new File("C:\\Users\\Administrator\\Pictures\\微信图片_20230107141436.png"), new BigDecimal(0.7),
-                new File("C:\\Users\\Administrator" +
-                        "\\Pictures" +
-                        "\\微信图片_202106281029182.jpg"));
+        compressImageWidthPercentage(new File("E:\\JAVAProject\\LotharCloudPan\\file\\202405\\4169919822d6LewHynUS.jpg"), new BigDecimal(0.7),
+                                    new File("E:\\JAVAProject\\LotharCloudPan\\file\\202405\\4169919822d6LewHynUS_.jpg"));
+//                new File("C:\\Users\\80574\\Desktop" + "\\test" + "\\10142_.jpg"));
     }
 }
