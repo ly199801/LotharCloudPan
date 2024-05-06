@@ -11,10 +11,14 @@ import com.easypan.component.RedisComponent;
 import com.easypan.entity.config.AppConfig;
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.enums.FileCategoryEnums;
+import com.easypan.entity.enums.FileFolderTypeEnums;
+import com.easypan.entity.enums.FileTypeEnums;
 import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.query.FileInfoQuery;
+import com.easypan.entity.vo.ResponseVO;
 import com.easypan.service.FileInfoService;
 import com.easypan.utils.StringTools;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
@@ -99,5 +103,25 @@ public class CommonFileController extends ABaseController{
             return;
         }
         readFile(response, filePath);
+    }
+
+    /**
+     * 获取文件目录信息
+     * @param path
+     * @param userId
+     * @return
+     */
+    public ResponseVO getFolderInfo(String path,String userId){
+        String[] pathArray = path.split("/");
+        FileInfoQuery infoQuery = new FileInfoQuery();
+        infoQuery.setUserId(userId);
+        infoQuery.setFolderType(FileFolderTypeEnums.FOLDER.getType());
+        infoQuery.setFileIdArray(pathArray);
+        //对查询的目录要进行排序，应该是按照它的层级来排，也就是其url中path后面出现的先后顺序来排,SQL语句中有引号所以需要转义符号来添加“
+        //select * from file_info where file_id in("fileId_1","fileId_2") order by field(file_id,"fileId_1","fileId_2")
+        String orderBy="field(file_id,\""+ StringUtils.join(pathArray,"\",\"")+"\")";
+        infoQuery.setOrderBy(orderBy);
+        List<FileInfo> fileInfoList=fileInfoService.findListByParam(infoQuery);
+        return getSuccessResponseVO(fileInfoList);
     }
 }

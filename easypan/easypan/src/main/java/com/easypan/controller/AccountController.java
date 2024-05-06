@@ -166,6 +166,8 @@ public class AccountController extends ABaseController {
         try {
             if(!checkCode.equalsIgnoreCase((String)session.getAttribute(Constants.CHECK_CODE_KEY))){
                 throw new BusinessException("图片验证码不匹配");
+
+
             }
             SessionWebUserDto sessionWebUserDto = userInfoService.login(email, password);
             //setAttribute 是用于在会话中设置属性的方法。这个方法接受两个参数：属性的键和属性的值

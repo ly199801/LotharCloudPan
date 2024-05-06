@@ -557,6 +557,7 @@ public class FileInfoServiceImpl implements FileInfoService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FileInfo newFolder(String filePid, String userId, String folderName) {
+        //校验文件名避免重复
         checkFileName(filePid, userId, folderName, FileFolderTypeEnums.FOLDER.getType());
         Date curDate = new Date();
         FileInfo fileInfo = new FileInfo();
@@ -571,6 +572,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         fileInfo.setDelFlag(FileDelFlagEnums.USING.getFlag());
         this.fileInfoMapper.insert(fileInfo);
 
+        //校验二级目录下是否存在相同文件夹
         FileInfoQuery fileInfoQuery = new FileInfoQuery();
         fileInfoQuery.setFilePid(filePid);
         fileInfoQuery.setUserId(userId);

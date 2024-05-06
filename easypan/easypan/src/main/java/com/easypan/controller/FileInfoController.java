@@ -13,6 +13,7 @@ import com.easypan.entity.dto.SessionWebUserDto;
 import com.easypan.entity.dto.UploadResultDto;
 import com.easypan.entity.enums.FileCategoryEnums;
 import com.easypan.entity.enums.FileDelFlagEnums;
+import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.entity.vo.FileInfoVO;
 import com.easypan.entity.vo.PaginationResultVO;
@@ -54,6 +55,18 @@ public class FileInfoController extends CommonFileController{
         return getSuccessResponseVO(convert2PaginationVO(result, FileInfoVO.class));
     }
 
+    /**
+     * 上传文件
+     * @param session
+     * @param fileId
+     * @param file
+     * @param fileName
+     * @param filePid
+     * @param fileMd5
+     * @param chunkIndex
+     * @param chunks
+     * @return
+     */
     @RequestMapping("/uploadFile")
     @GlobalInterceptor(checkParams = true)
     //第一个文件传的时候没有fileId，后面再传的时候会把fileId带上，这样就知道是前面第一个文件的分片
@@ -78,24 +91,68 @@ public class FileInfoController extends CommonFileController{
      * @param imageFolder
      * @param imageName
      */
-    @RequestMapping("getImage/{imageFolder}/{imageName}")
+    @RequestMapping("/getImage/{imageFolder}/{imageName}")
     public void getImage(HttpServletResponse response, @PathVariable("imageFolder") String imageFolder, @PathVariable("imageName") String imageName) {
         super.getImage(response, imageFolder, imageName);
     }
 
+    /**
+     * 获取视频信息
+     * @param response
+     * @param session
+     * @param fileId
+     */
     @RequestMapping("/ts/getVideoInfo/{fileId}")
     public void getVideoInfo(HttpServletResponse response, HttpSession session, @PathVariable("fileId") @VerifyParam(required = true) String fileId) {
         SessionWebUserDto webUserDto = getUserInfoFromSession(session);
         super.getFile(response, fileId, webUserDto.getUserId());
     }
 
+    /**
+     * 获取文件
+     * @param response
+     * @param session
+     * @param fileId
+     */
     @RequestMapping("/getFile/{fileId}")
+    @GlobalInterceptor(checkParams = true)
     public void getFile(HttpServletResponse response, HttpSession session, @PathVariable("fileId") @VerifyParam(required = true) String fileId) {
         SessionWebUserDto webUserDto = getUserInfoFromSession(session);
         super.getFile(response, fileId, webUserDto.getUserId());
     }
 
+    /**
+     * 新增文件夹
+     * @param session
+     * @param filePid
+     * @param fileName
+     * @return
+     */
+    @RequestMapping("/newFolder")
+    @GlobalInterceptor(checkParams = true)
+    //filePid是用来校验其上一级目录
+    public ResponseVO newFolder( HttpSession session,
+                           @VerifyParam(required = true) String filePid,
+                           @VerifyParam(required = true) String fileName) {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+        FileInfo fileInfo = fileInfoService.newFolder(filePid, webUserDto.getUserId(), fileName);
+        return getSuccessResponseVO(fileInfo);
+    }
 
-
+    /**
+     * 获取文件目录信息
+     * @param session
+     * @param path
+     * @return
+     */
+    @RequestMapping("/getFolderInfo")
+    @GlobalInterceptor(checkParams = true)
+    //文件目录信息、分享时也会用到、超级管理员看整个用户也需要用到文件列表
+    //是一个公共方法，建议写到其父类里去
+    public ResponseVO getFolderInfo( HttpSession session,
+                                 @VerifyParam(required = true) String path) {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+        return super.getFolderInfo(path, webUserDto.getUserId());
+    }
 
 }
