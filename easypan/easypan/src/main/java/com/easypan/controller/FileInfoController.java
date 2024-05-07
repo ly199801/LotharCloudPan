@@ -13,12 +13,15 @@ import com.easypan.entity.dto.SessionWebUserDto;
 import com.easypan.entity.dto.UploadResultDto;
 import com.easypan.entity.enums.FileCategoryEnums;
 import com.easypan.entity.enums.FileDelFlagEnums;
+import com.easypan.entity.enums.FileFolderTypeEnums;
 import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.entity.vo.FileInfoVO;
 import com.easypan.entity.vo.PaginationResultVO;
 import com.easypan.entity.vo.ResponseVO;
 import com.easypan.service.FileInfoService;
+import com.easypan.utils.CopyTools;
+import com.easypan.utils.StringTools;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.util.List;
 
 /**
  * 文明信息
@@ -136,7 +140,7 @@ public class FileInfoController extends CommonFileController{
                            @VerifyParam(required = true) String fileName) {
         SessionWebUserDto webUserDto = getUserInfoFromSession(session);
         FileInfo fileInfo = fileInfoService.newFolder(filePid, webUserDto.getUserId(), fileName);
-        return getSuccessResponseVO(fileInfo);
+        return getSuccessResponseVO(CopyTools.copy(fileInfo,FileInfoVO.class));
     }
 
     /**
@@ -154,5 +158,71 @@ public class FileInfoController extends CommonFileController{
         SessionWebUserDto webUserDto = getUserInfoFromSession(session);
         return super.getFolderInfo(path, webUserDto.getUserId());
     }
+
+    /**
+     * 文件重命名
+     * @param session
+     * @param fileId
+     * @param fileName
+     * @return
+     */
+    @RequestMapping("/rename")
+    @GlobalInterceptor(checkParams = true)
+    public ResponseVO rename( HttpSession session,
+                                     @VerifyParam(required = true) String fileId,
+                                     @VerifyParam(required = true) String fileName) {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+        FileInfo  fileInfo = fileInfoService.rename(fileId,webUserDto.getUserId(),fileName);
+        //这样做就避免了把所有信息都传给前端
+        return getSuccessResponseVO(CopyTools.copy(fileInfo,FileInfoVO.class));
+    }
+
+    /**
+     * 获取所有文件目录
+     * @param session
+     * @param filePid
+     * @param currentFileIds
+     * @return
+     */
+    @RequestMapping("/loadAllFolder")
+    @GlobalInterceptor(checkParams = true)
+    public ResponseVO loadAllFolder( HttpSession session,
+                              @VerifyParam(required = true) String filePid,
+                               String currentFileIds) {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+        FileInfoQuery infoQuery = new FileInfoQuery();
+        infoQuery.setUserId(webUserDto.getUserId());
+        infoQuery.setFilePid(filePid);
+        //设置好文件类型，只针对文件夹
+        infoQuery.setFolderType(FileFolderTypeEnums.FOLDER.getType());
+        if(!StringTools.isEmpty(currentFileIds)){
+            infoQuery.setExcludeFileIdArray(currentFileIds.split(","));
+        }
+        infoQuery.setDelFlag(FileDelFlagEnums.USING.getFlag());
+        infoQuery.setOrderBy("create_time desc");
+        List<FileInfo> fileInfoList = fileInfoService.findListByParam(infoQuery);
+        return getSuccessResponseVO(CopyTools.copyList(fileInfoList,FileInfoVO.class));
+    }
+
+    /**
+     * 移动文件
+     * @param session
+     * @param fileIds
+     * @param filePid
+     * @return
+     */
+
+    @RequestMapping("/changeFileFolder")
+    @GlobalInterceptor(checkParams = true)
+
+    public ResponseVO changeFileFolder( HttpSession session,
+                                     @VerifyParam(required = true) String fileIds,
+                                        @VerifyParam(required = true) String filePid) {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+
+        fileInfoService.changeFileFolder(fileIds,filePid, webUserDto.getUserId());
+        return getSuccessResponseVO(null);
+    }
+
 
 }

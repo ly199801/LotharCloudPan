@@ -505,6 +505,13 @@ public class FileInfoServiceImpl implements FileInfoService {
         new File(tsPath).delete();
     }
 
+    /**
+     * 文件重命名
+     * @param fileId
+     * @param userId
+     * @param fileName
+     * @return
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FileInfo rename(String fileId, String userId, String fileName) {
@@ -516,17 +523,20 @@ public class FileInfoServiceImpl implements FileInfoService {
             return fileInfo;
         }
         String filePid = fileInfo.getFilePid();
+        //检查是否有同名文件夹
         checkFileName(filePid, userId, fileName, fileInfo.getFolderType());
-        //文件获取后缀
+        //如果是文件而不是文件夹，则不允许修改文件后缀，所以会在新文件名后面添加原文件的后缀
         if (FileFolderTypeEnums.FILE.getType().equals(fileInfo.getFolderType())) {
             fileName = fileName + StringTools.getFileSuffix(fileInfo.getFileName());
         }
+        //更新文件信息，设置新的文件名和最后更新的时间，并通过文件ID和用户ID更新数据库中的文件信息
         Date curDate = new Date();
         FileInfo dbInfo = new FileInfo();
         dbInfo.setFileName(fileName);
         dbInfo.setLastUpdateTime(curDate);
         this.fileInfoMapper.updateByFileIdAndUserId(dbInfo, fileId, userId);
 
+        //再次检查是否存在同名文件（或文件夹），这一段是为了应对并发场景，再次校验
         FileInfoQuery fileInfoQuery = new FileInfoQuery();
         fileInfoQuery.setFilePid(filePid);
         fileInfoQuery.setUserId(userId);
@@ -536,11 +546,19 @@ public class FileInfoServiceImpl implements FileInfoService {
         if (count > 1) {
             throw new BusinessException("文件名" + fileName + "已经存在");
         }
+        //更新原始的文件信息，设置新的文件名和最后更新时间
         fileInfo.setFileName(fileName);
         fileInfo.setLastUpdateTime(curDate);
         return fileInfo;
     }
 
+    /**
+     * 检查是否有同名文件夹
+     * @param filePid
+     * @param userId
+     * @param fileName
+     * @param folderType
+     */
     private void checkFileName(String filePid, String userId, String fileName, Integer folderType) {
         FileInfoQuery fileInfoQuery = new FileInfoQuery();
         fileInfoQuery.setFolderType(folderType);
@@ -588,11 +606,18 @@ public class FileInfoServiceImpl implements FileInfoService {
         return fileInfo;
     }
 
+    /**
+     * 移动文件
+     * @param fileIds
+     * @param filePid
+     * @param userId
+     */
     @Transactional(rollbackFor = Exception.class)
     public void changeFileFolder(String fileIds, String filePid, String userId) {
         if (fileIds.equals(filePid)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
+        //不是根目录
         if (!Constants.ZERO_STR.equals(filePid)) {
             FileInfo fileInfo = fileInfoService.getFileInfoByFileIdAndUserId(filePid, userId);
             if (fileInfo == null || !FileDelFlagEnums.USING.getFlag().equals(fileInfo.getDelFlag())) {
@@ -601,6 +626,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
         String[] fileIdArray = fileIds.split(",");
 
+        //判断要移动的目录在目标目录中是否有同名文件，若有同名文件则进行重命名
         FileInfoQuery query = new FileInfoQuery();
         query.setFilePid(filePid);
         query.setUserId(userId);
