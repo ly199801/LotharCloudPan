@@ -653,6 +653,11 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
     }
 
+    /**
+     * 删除文件到回收站
+     * @param userId
+     * @param fileIds
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void removeFile2RecycleBatch(String userId, String fileIds) {
@@ -667,6 +672,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
         List<String> delFilePidList = new ArrayList<>();
         for (FileInfo fileInfo : fileInfoList) {
+            //递归将要删除的目录里的文件放入要删除的集合中
             findAllSubFolderFileIdList(delFilePidList, userId, fileInfo.getFileId(), FileDelFlagEnums.USING.getFlag());
         }
         //将目录下的所有文件更新为已删除

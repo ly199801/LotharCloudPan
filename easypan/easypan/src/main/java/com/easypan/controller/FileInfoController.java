@@ -28,8 +28,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 /**
@@ -214,7 +216,6 @@ public class FileInfoController extends CommonFileController{
 
     @RequestMapping("/changeFileFolder")
     @GlobalInterceptor(checkParams = true)
-
     public ResponseVO changeFileFolder( HttpSession session,
                                      @VerifyParam(required = true) String fileIds,
                                         @VerifyParam(required = true) String filePid) {
@@ -224,5 +225,42 @@ public class FileInfoController extends CommonFileController{
         return getSuccessResponseVO(null);
     }
 
+    /**
+     * 创建下载链接(code)
+     * @param session
+     * @param fileId
+     * @return
+     */
+    @RequestMapping("/createDownloadUrl/{fileId}")
+    @GlobalInterceptor(checkParams = true)
+    public ResponseVO createDownloadUrl( HttpSession session,
+                                        @VerifyParam(required = true) @PathVariable("fileId") String fileId) {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+            return super.createDownload(fileId, webUserDto.getUserId());
+
+    }
+
+    /**
+     * 下载文件
+     * @param response
+     * @param request
+     * @param code
+     * @throws UnsupportedEncodingException
+     */
+    @RequestMapping("/download/{code}")
+    @GlobalInterceptor(checkParams = true,checkLogin = false)
+    public void download(HttpServletResponse response, HttpServletRequest request,
+                               @VerifyParam(required = true) @PathVariable("code") String code) throws UnsupportedEncodingException {
+         super.download(request,response,code);
+    }
+
+    @RequestMapping("/delFile")
+    @GlobalInterceptor(checkParams = true)
+    public ResponseVO delFile(HttpSession session,
+                         @VerifyParam(required = true) String fileIds)  {
+        SessionWebUserDto webUserDto = getUserInfoFromSession(session);
+        fileInfoService.removeFile2RecycleBatch(webUserDto.getUserId(), fileIds);
+        return getSuccessResponseVO(null);
+    }
 
 }

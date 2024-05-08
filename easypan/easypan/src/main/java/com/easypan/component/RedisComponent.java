@@ -49,6 +49,11 @@ public class RedisComponent {
         redisUtils.set(Constants.REDIS_KEY_SYS_SETTING, sysSettingsDto);
     }
 
+    /**
+     * 保存下载链接
+     * @param code
+     * @param downloadFileDto
+     */
     public void saveDownloadCode(String code, DownloadFileDto downloadFileDto) {
         redisUtils.setex(Constants.REDIS_KEY_DOWNLOAD + code, downloadFileDto, Constants.REDIS_KEY_EXPIRES_FIVE_MIN);
     }
