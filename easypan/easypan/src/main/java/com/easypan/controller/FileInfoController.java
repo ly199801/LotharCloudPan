@@ -254,6 +254,12 @@ public class FileInfoController extends CommonFileController{
          super.download(request,response,code);
     }
 
+    /**
+     * 文件删除放入回收站
+     * @param session
+     * @param fileIds
+     * @return
+     */
     @RequestMapping("/delFile")
     @GlobalInterceptor(checkParams = true)
     public ResponseVO delFile(HttpSession session,

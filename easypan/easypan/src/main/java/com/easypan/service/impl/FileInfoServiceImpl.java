@@ -541,6 +541,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         fileInfoQuery.setFilePid(filePid);
         fileInfoQuery.setUserId(userId);
         fileInfoQuery.setFileName(fileName);
+        //这里需要过滤一下，不如不加这一段的话，会导致创建文件夹时，如果回收站存在同名文件时提示文件名已存在。
         fileInfoQuery.setDelFlag(FileDelFlagEnums.USING.getFlag());
         Integer count = this.fileInfoMapper.selectCount(fileInfoQuery);
         if (count > 1) {
@@ -565,6 +566,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         fileInfoQuery.setFileName(fileName);
         fileInfoQuery.setFilePid(filePid);
         fileInfoQuery.setUserId(userId);
+        //这里需要过滤一下，不如不加这一段的话，会导致创建文件夹时，如果回收站存在同名文件时提示文件名已存在。
         fileInfoQuery.setDelFlag(FileDelFlagEnums.USING.getFlag());
         Integer count = this.fileInfoMapper.selectCount(fileInfoQuery);
         if (count > 0) {
@@ -704,6 +706,11 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
     }
 
+    /**
+     * 批量恢复回收站文件
+     * @param userId
+     * @param fileIds
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void recoverFileBatch(String userId, String fileIds) {
@@ -721,7 +728,7 @@ public class FileInfoServiceImpl implements FileInfoService {
                 findAllSubFolderFileIdList(delFileSubFolderFileIdList, userId, fileInfo.getFileId(), FileDelFlagEnums.DEL.getFlag());
             }
         }
-        //查询所有跟目录的文件
+        //查询所有根目录的文件
         query = new FileInfoQuery();
         query.setUserId(userId);
         query.setDelFlag(FileDelFlagEnums.USING.getFlag());
@@ -737,7 +744,7 @@ public class FileInfoServiceImpl implements FileInfoService {
             fileInfo.setDelFlag(FileDelFlagEnums.USING.getFlag());
             this.fileInfoMapper.updateFileDelFlagBatch(fileInfo, userId, delFileSubFolderFileIdList, null, FileDelFlagEnums.DEL.getFlag());
         }
-        //将选中的文件更新为正常,且父级目录到跟目录
+        //将选中的文件更新为正常,且父级目录到根目录
         List<String> delFileIdList = Arrays.asList(fileIdArray);
         FileInfo fileInfo = new FileInfo();
         fileInfo.setDelFlag(FileDelFlagEnums.USING.getFlag());
@@ -758,6 +765,12 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
     }
 
+    /**
+     * 批量彻底删除文件
+     * @param userId
+     * @param fileIds
+     * @param adminOp
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delFileBatch(String userId, String fileIds, Boolean adminOp) {
@@ -785,6 +798,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         //删除所选文件
         this.fileInfoMapper.delFileBatch(userId, null, Arrays.asList(fileIdArray), adminOp ? null : FileDelFlagEnums.RECYCLE.getFlag());
 
+        //文件删除后退回用户使用空间
         Long useSpace = this.fileInfoMapper.selectUseSpace(userId);
         UserInfo userInfo = new UserInfo();
         userInfo.setUseSpace(useSpace);
