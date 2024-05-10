@@ -296,7 +296,11 @@ public class UserInfoServiceImpl implements UserInfoService {
         this.userInfoMapper.updateByEmail(updateInfo, email);
     }
 
-
+    /**
+     * 更新用户状态
+     * @param userId
+     * @param status
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateUserStatus(String userId, Integer status) {

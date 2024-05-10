@@ -116,17 +116,23 @@ public class FileShareServiceImpl implements FileShareService {
         return this.fileShareMapper.deleteByShareId(shareId);
     }
 
+    /**
+     *提取码
+     * @param share
+     */
     @Override
     public void saveShare(FileShare share) {
         ShareValidTypeEnums typeEnum = ShareValidTypeEnums.getByType(share.getValidType());
         if (null == typeEnum) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
+        //记录失效时间
         if (typeEnum != ShareValidTypeEnums.FOREVER) {
             share.setExpireTime(DateUtil.getAfterDate(typeEnum.getDays()));
         }
         Date curDate = new Date();
         share.setShareTime(curDate);
+        //系统生成提取码
         if (StringTools.isEmpty(share.getCode())) {
             share.setCode(StringTools.getRandomString(Constants.LENGTH_5));
         }
@@ -134,6 +140,11 @@ public class FileShareServiceImpl implements FileShareService {
         this.fileShareMapper.insert(share);
     }
 
+    /**
+     * 批量取消文件分享
+     * @param shareIdArray
+     * @param userId
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteFileShareBatch(String[] shareIdArray, String userId) {
