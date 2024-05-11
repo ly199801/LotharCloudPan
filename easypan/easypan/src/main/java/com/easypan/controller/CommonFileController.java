@@ -18,6 +18,7 @@ import com.easypan.entity.enums.ResponseCodeEnum;
 import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.entity.vo.FileInfoVO;
+import com.easypan.entity.vo.FolderVO;
 import com.easypan.entity.vo.ResponseVO;
 import com.easypan.exception.BusinessException;
 import com.easypan.service.FileInfoService;
@@ -130,7 +131,7 @@ public class CommonFileController extends ABaseController{
         String orderBy="field(file_id,\""+ StringUtils.join(pathArray,"\",\"")+"\")";
         infoQuery.setOrderBy(orderBy);
         List<FileInfo> fileInfoList=fileInfoService.findListByParam(infoQuery);
-        return getSuccessResponseVO(CopyTools.copyList(fileInfoList, FileInfoVO.class));
+        return getSuccessResponseVO(CopyTools.copyList(fileInfoList, FolderVO.class));
     }
 
     /**

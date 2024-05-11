@@ -827,12 +827,16 @@ public class FileInfoServiceImpl implements FileInfoService {
         if (fileInfo == null) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
+        //防止分享根目录
         if (Constants.ZERO_STR.equals(fileInfo.getFilePid())) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
         if (fileInfo.getFilePid().equals(rootFilePid)) {
             return;
         }
+        /*
+        如果当前文件的父ID不是根文件ID，递归调用 checkFilePid 方法，以当前文件的父ID作为新的文件ID，继续检查其上级文件，直到找到根文件或者抛出异常。
+         */
         checkFilePid(rootFilePid, fileInfo.getFilePid(), userId);
     }
 

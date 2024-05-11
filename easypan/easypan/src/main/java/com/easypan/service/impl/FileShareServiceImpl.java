@@ -165,6 +165,7 @@ public class FileShareServiceImpl implements FileShareService {
         }
 
         //更新浏览次数
+        //在数据库层面去更新浏览次数就不会出现脏读的情况
         this.fileShareMapper.updateShareShowCount(shareId);
         SessionShareDto shareSessionDto = new SessionShareDto();
         shareSessionDto.setShareId(shareId);
